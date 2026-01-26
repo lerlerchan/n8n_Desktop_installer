@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "WebSearch",
+      "WebFetch(domain:www.electron.build)",
+      "WebFetch(domain:www.electronjs.org)",
+      "WebFetch(domain:docs.n8n.io)",
+      "WebFetch(domain:deepwiki.com)",
+      "Bash(curl:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Skill(ralph-loop:ralph-loop)",
+      "Bash(node -e:*)"
+    ]
+  }
+}
