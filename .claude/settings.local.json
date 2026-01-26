@@ -25,7 +25,8 @@
       "Bash(cmd /c \"wmic process where \"\"name like ''%electron%'' or name like ''%node%'' or commandline like ''%n8n%''\"\" get processid,name,commandline 2>nul\")",
       "Bash(cmd /c \"dir /s /b C:\\\\Users\\\\LerLerChan\\\\AppData\\\\*SingletonLock* 2>nul\")",
       "Bash(npm run dev:*)",
-      "Bash(npx electron-rebuild:*)"
+      "Bash(npx electron-rebuild:*)",
+      "Bash(npm run build:win:*)"
     ]
   }
 }
