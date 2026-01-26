@@ -86,6 +86,38 @@ async function main() {
   const config = getConfig();
   console.log('Config:', config);
 
+  // If packaged and runtime not present, download runtime on first run
+  try {
+    const isPackaged = app.isPackaged === true;
+    if (isPackaged) {
+      const { ensureRuntime } = require('./utils/downloadRuntime');
+      const path = require('path');
+      const fs = require('fs');
+
+      // Target where packaged app expects node_modules to live
+      const targetDir = path.join(process.resourcesPath, 'app');
+      const n8nBin = path.join(targetDir, 'node_modules', '.bin', process.platform === 'win32' ? 'n8n.cmd' : 'n8n');
+
+      if (!fs.existsSync(n8nBin)) {
+        console.log('[runtime] n8n binary not found inside packaged app; attempting runtime download');
+
+        // Runtime URL can be provided via env var RUNTIME_URL; default to release asset path
+        const runtimeUrl = process.env.RUNTIME_URL || `https://github.com/lerlerchan/n8n_Desktop_installer/releases/latest/download/n8n-runtime-win-x64.zip`;
+
+        try {
+          await ensureRuntime({ downloadUrl: runtimeUrl, targetDir });
+          console.log('[runtime] Runtime downloaded and extracted successfully');
+        } catch (err) {
+          console.error('[runtime] Failed to download or extract runtime:', err);
+        }
+      } else {
+        console.log('[runtime] n8n binary already present; skipping runtime download');
+      }
+    }
+  } catch (err) {
+    console.error('[runtime] Error checking/installing runtime:', err);
+  }
+
   // Create system tray
   tray = createTray({
     onStart: handleStart,

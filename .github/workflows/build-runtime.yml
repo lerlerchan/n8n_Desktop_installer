@@ -1,0 +1,104 @@
+name: Build n8n Runtime
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - '.github/workflows/build-runtime.yml'
+  workflow_dispatch:
+    inputs:
+      n8n_version:
+        description: 'n8n version (leave empty for latest)'
+        required: false
+        default: ''
+
+jobs:
+  build-runtime-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Verify Node environment
+        run: |
+          node -v
+          npm -v
+
+      - name: Create runtime directory structure
+        run: |
+          mkdir runtime
+          cd runtime
+          echo '{"name":"n8n-runtime","version":"1.0.0","private":true}' > package.json
+
+      - name: Install n8n and dependencies
+        run: |
+          cd runtime
+          npm install n8n@${{ github.event.inputs.n8n_version || 'latest' }} --save
+        env:
+          # Avoid native module rebuild issues
+          npm_config_build_from_source: false
+
+      - name: Verify n8n binary exists
+        run: |
+          dir runtime\node_modules\.bin\
+          if (Test-Path "runtime\node_modules\.bin\n8n.cmd") {
+            Write-Host "✓ n8n.cmd found"
+          } else {
+            Write-Host "✗ n8n.cmd NOT found"
+            exit 1
+          }
+
+      - name: Get n8n version for artifact name
+        id: n8n_version
+        run: |
+          $version = (Get-Content runtime\node_modules\n8n\package.json | ConvertFrom-Json).version
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+          Write-Host "n8n version: $version"
+
+      - name: Create runtime zip
+        run: |
+          Compress-Archive -Path runtime\node_modules, runtime\package.json, runtime\package-lock.json -DestinationPath n8n-runtime-win-x64.zip -Force
+
+      - name: Upload runtime artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: n8n-runtime-win-x64
+          path: n8n-runtime-win-x64.zip
+          retention-days: 90
+
+      - name: Create Release (on tag or manual)
+        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: runtime-v${{ steps.n8n_version.outputs.version }}-${{ github.run_number }}
+          name: n8n Runtime v${{ steps.n8n_version.outputs.version }}
+          body: |
+            Pre-built n8n runtime for Windows x64.
+
+            **n8n version:** ${{ steps.n8n_version.outputs.version }}
+            **Node.js version:** 20.x
+            **Platform:** Windows x64
+
+            ## Usage
+            Extract the zip contents into the `resources/app/` folder of the packaged Electron app.
+            After extraction, you should have:
+            ```
+            resources/app/
+              ├── node_modules/
+              │   ├── .bin/
+              │   │   ├── n8n
+              │   │   └── n8n.cmd
+              │   └── n8n/
+              │       └── ...
+              ├── package.json
+              └── package-lock.json
+            ```
+          files: |
+            n8n-runtime-win-x64.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

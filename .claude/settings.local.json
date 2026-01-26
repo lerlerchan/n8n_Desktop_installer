@@ -26,7 +26,10 @@
       "Bash(cmd /c \"dir /s /b C:\\\\Users\\\\LerLerChan\\\\AppData\\\\*SingletonLock* 2>nul\")",
       "Bash(npm run dev:*)",
       "Bash(npx electron-rebuild:*)",
-      "Bash(npm run build:win:*)"
+      "Bash(npm run build:win:*)",
+      "Bash(node scripts/build-runtime.js:*)",
+      "Bash(powershell -Command \"\\(Get-Item dist\\\\n8n-runtime-win-x64.zip\\).Length / 1MB\")",
+      "Bash(powershell -Command:*)"
     ]
   }
 }

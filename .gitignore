@@ -43,3 +43,6 @@ release/
 *.deb
 *.rpm
 nul
+
+# Runtime build directory (created by npm run build:runtime)
+runtime-build/

@@ -13,7 +13,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '18.x'
+          node-version: '20.x'
           cache: 'npm'
 
       - name: Verify environment
@@ -21,8 +21,11 @@ jobs:
           node -v
           npm -v
 
-      - name: Install dependencies
+      - name: Install dependencies (lightweight shell only)
         run: npm ci
+        env:
+          # Skip optional dependencies and native module rebuilds
+          npm_config_optional: false
 
       - name: Install NSIS (required by electron-builder)
         run: choco install nsis -y
@@ -30,12 +33,15 @@ jobs:
       - name: Build Windows installer
         run: npm run build:win --if-present
 
+      - name: List build output
+        run: |
+          Write-Host "=== dist folder contents ==="
+          if (Test-Path dist) { Get-ChildItem -Recurse dist | Select-Object FullName }
+
       - name: Upload installer artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-installer
           path: |
             dist/**/*.exe
-            out/**/*.exe
-            build/**/*.exe
             dist/**/*
