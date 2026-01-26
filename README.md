@@ -1,6 +1,12 @@
 # n8n Desktop Installer
 
-A desktop application that bundles n8n with a simple system tray interface. Run n8n locally without Docker or manual setup - just install and run.
+**A simple one-click installer for n8n - No technical knowledge required!**
+
+n8n Desktop Installer makes it easy for non-technical users to install and run n8n automation workflows on their Windows computer. No Docker, no terminal commands, no configuration needed - just click install and start automating!
+
+## 🎯 Purpose
+
+Created to help students, educators, and beginners learn n8n automation without the complexity of traditional installation methods. Perfect for workshops, training sessions, and classroom environments.
 
 ## Features
 
@@ -258,7 +264,11 @@ n8n_Desktop_installer/
 
 MIT License - See LICENSE file for details
 
-## Credits
+**Made with ❤️ for educators and students**
+
+*No more "Docker not found" errors in your workshops!*
+
+## Credits and 🙏 Acknowledgments
 
 - [n8n](https://n8n.io/) - Workflow automation platform
 - [Electron](https://www.electronjs.org/) - Desktop application framework
