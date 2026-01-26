@@ -10,7 +10,22 @@
       "Bash(curl:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Skill(ralph-loop:ralph-loop)",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "Bash(npm start)",
+      "Bash(timeout /t 15 /nobreak)",
+      "Bash(npm install:*)",
+      "Bash(ping:*)",
+      "Bash(cmd /c \"rmdir /s /q %APPDATA%\\\\Electron 2>nul\")",
+      "Bash(cmd /c \"rmdir /s /q %APPDATA%\\\\n8n-desktop 2>nul\")",
+      "Bash(cmd /c \"taskkill /F /IM electron.exe /T 2>nul & taskkill /F /IM node.exe /T 2>nul & echo Done\")",
+      "Bash(cmd /c \"rmdir /s /q C:\\\\Users\\\\LerLerChan\\\\AppData\\\\Roaming\\\\Electron 2>nul\")",
+      "Bash(cmd /c \"rmdir /s /q C:\\\\Users\\\\LerLerChan\\\\AppData\\\\Roaming\\\\n8n-desktop 2>nul\")",
+      "Bash(cmd /c \"dir /b C:\\\\Users\\\\LerLerChan\\\\AppData\\\\Roaming\\\\ | findstr /i n8n\")",
+      "Bash(cmd /c \"dir /b C:\\\\Users\\\\LerLerChan\\\\AppData\\\\Roaming\\\\ | findstr /i Electron\")",
+      "Bash(cmd /c \"wmic process where \"\"name like ''%electron%'' or name like ''%node%'' or commandline like ''%n8n%''\"\" get processid,name,commandline 2>nul\")",
+      "Bash(cmd /c \"dir /s /b C:\\\\Users\\\\LerLerChan\\\\AppData\\\\*SingletonLock* 2>nul\")",
+      "Bash(npm run dev:*)",
+      "Bash(npx electron-rebuild:*)"
     ]
   }
 }

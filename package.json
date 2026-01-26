@@ -32,7 +32,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "assets/icon.ico"
@@ -50,7 +52,10 @@
     "mac": {
       "target": {
         "target": "dmg",
-        "arch": ["x64", "arm64"]
+        "arch": [
+          "x64",
+          "arm64"
+        ]
       },
       "icon": "assets/icon.icns",
       "hardenedRuntime": true,
@@ -60,8 +65,16 @@
     },
     "dmg": {
       "contents": [
-        { "x": 130, "y": 220 },
-        { "x": 410, "y": 220, "type": "link", "path": "/Applications" }
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
       ]
     }
   },
@@ -72,6 +85,7 @@
     "n8n": "^1.70.0",
     "node-fetch": "^2.7.0",
     "respawn": "^2.6.0",
+    "sqlite3": "^5.1.7",
     "tcp-port-used": "^1.0.2"
   },
   "devDependencies": {

@@ -1,5 +1,6 @@
 const { spawn } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 const respawn = require('respawn');
 const findProcess = require('find-process');
 
@@ -9,13 +10,34 @@ let currentStatus = 'stopped';
 const isDev = process.env.ELECTRON_DEV_MODE === 'true';
 const N8N_PORT = process.env.N8N_PORT || 5678;
 
+// Check if we're running as a packaged app (vs from source)
+function isPackaged() {
+  // In packaged apps, app.asar or the app folder exists in resources
+  // When running from source, process.resourcesPath points to electron's internal resources
+  const appPath = path.join(process.resourcesPath, 'app');
+  const asarPath = path.join(process.resourcesPath, 'app.asar');
+  return fs.existsSync(appPath) || fs.existsSync(asarPath);
+}
+
 function getN8nBinaryPath() {
   // n8n CLI is in node_modules/.bin/n8n
-  const basePath = isDev
-    ? path.join(__dirname, '../node_modules/.bin/n8n')
-    : path.join(process.resourcesPath, 'app/node_modules/.bin/n8n');
+  let basePath;
 
-  return process.platform === 'win32' ? `${basePath}.cmd` : basePath;
+  if (isPackaged()) {
+    // Packaged app: look in resources/app/node_modules
+    basePath = path.join(process.resourcesPath, 'app', 'node_modules', '.bin', 'n8n');
+  } else {
+    // Running from source (dev or npm start): look in project's node_modules
+    basePath = path.join(__dirname, '..', 'node_modules', '.bin', 'n8n');
+  }
+
+  const fullPath = process.platform === 'win32' ? `${basePath}.cmd` : basePath;
+
+  console.log(`[n8n] Binary path: ${fullPath}`);
+  console.log(`[n8n] Path exists: ${fs.existsSync(fullPath)}`);
+  console.log(`[n8n] isPackaged: ${isPackaged()}, isDev: ${isDev}`);
+
+  return fullPath;
 }
 
 async function startN8n() {
@@ -34,6 +56,14 @@ async function startN8n() {
 
     if (isDev) {
       // Development: Simple spawn for easier debugging
+      // First verify the binary exists
+      if (!fs.existsSync(n8nPath)) {
+        const error = new Error(`n8n binary not found at: ${n8nPath}`);
+        console.error(error.message);
+        reject(error);
+        return;
+      }
+
       n8nMonitor = spawn(n8nPath, args, {
         env,
         stdio: 'inherit',
@@ -41,39 +71,68 @@ async function startN8n() {
       });
 
       n8nMonitor.on('error', (err) => {
-        console.error('Failed to start n8n:', err);
+        console.error('[n8n] Failed to start:', err.message);
+        console.error('[n8n] Error details:', err);
         currentStatus = 'stopped';
         reject(err);
       });
 
       n8nMonitor.on('spawn', () => {
+        console.log('[n8n] Process spawned successfully in dev mode');
         currentStatus = 'running';
         resolve(n8nMonitor);
       });
 
+      n8nMonitor.on('exit', (code, signal) => {
+        console.log(`[n8n] Dev process exited with code ${code}, signal ${signal}`);
+        currentStatus = 'stopped';
+      });
+
     } else {
       // Production: Use respawn for auto-restart
+      // But first verify the binary exists
+      if (!fs.existsSync(n8nPath)) {
+        const error = new Error(`n8n binary not found at: ${n8nPath}`);
+        console.error(error.message);
+        reject(error);
+        return;
+      }
+
       n8nMonitor = respawn([n8nPath, ...args], {
         env,
         maxRestarts: 10,
         sleep: 1000,
         kill: 5000,
-        stdio: 'inherit'
+        stdio: ['ignore', 'pipe', 'pipe'] // Capture stdout/stderr
+      });
+
+      // Capture stdout
+      n8nMonitor.on('stdout', (data) => {
+        console.log(`[n8n stdout] ${data.toString().trim()}`);
+      });
+
+      // Capture stderr
+      n8nMonitor.on('stderr', (data) => {
+        console.error(`[n8n stderr] ${data.toString().trim()}`);
       });
 
       n8nMonitor.on('start', () => {
-        console.log('n8n process started');
+        console.log('[n8n] Process started');
         currentStatus = 'running';
         resolve(n8nMonitor);
       });
 
       n8nMonitor.on('crash', () => {
-        console.error('n8n process crashed');
+        console.error('[n8n] Process crashed - check stderr output above for details');
         currentStatus = 'stopped';
       });
 
-      n8nMonitor.on('exit', (code) => {
-        console.log(`n8n process exited with code ${code}`);
+      n8nMonitor.on('exit', (code, signal) => {
+        console.log(`[n8n] Process exited with code ${code}, signal ${signal}`);
+      });
+
+      n8nMonitor.on('warn', (err) => {
+        console.warn(`[n8n] Warning: ${err.message}`);
       });
 
       n8nMonitor.start();

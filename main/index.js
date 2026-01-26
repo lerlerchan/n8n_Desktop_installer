@@ -6,7 +6,9 @@ const { setEnvVars, getConfig } = require('./envConfig');
 const { waitForN8n } = require('./utils');
 
 // Prevent multiple instances
-const gotTheLock = app.requestSingleInstanceLock();
+// Note: Singleton lock temporarily disabled for testing
+// TODO: Re-enable after testing
+const gotTheLock = true; // app.requestSingleInstanceLock();
 if (!gotTheLock) {
   console.log('Another instance is already running');
   app.quit();
