@@ -8,9 +8,9 @@
   "scripts": {
     "start": "electron .",
     "dev": "cross-env ELECTRON_DEV_MODE=true electron .",
-    "build:win": "electron-builder build --win --x64",
-    "build:mac": "electron-builder build --mac",
-    "build:mac:unsigned": "electron-builder build --mac -c.mac.identity=null",
+    "build:win": "electron-builder build --win --x64 --publish never",
+    "build:mac": "electron-builder build --mac --publish never",
+    "build:mac:unsigned": "electron-builder build --mac -c.mac.identity=null --publish never",
     "build:runtime": "node scripts/build-runtime.js",
     "postinstall": "electron-builder install-app-deps"
   },
