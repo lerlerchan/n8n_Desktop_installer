@@ -3,6 +3,8 @@ const path = require('path');
 const fs = require('fs');
 const respawn = require('respawn');
 const findProcess = require('find-process');
+const { app } = require('electron');
+const logger = require('./logger');
 
 let n8nMonitor = null;
 let currentStatus = 'stopped';
@@ -12,8 +14,12 @@ const N8N_PORT = process.env.N8N_PORT || 5678;
 
 // Check if we're running as a packaged app (vs from source)
 function isPackaged() {
-  // In packaged apps, app.asar or the app folder exists in resources
-  // When running from source, process.resourcesPath points to electron's internal resources
+  // Use Electron's built-in check
+  if (typeof app !== 'undefined' && app.isPackaged !== undefined) {
+    return app.isPackaged;
+  }
+
+  // Fallback: In packaged apps, app.asar or the app folder exists in resources
   const appPath = path.join(process.resourcesPath, 'app');
   const asarPath = path.join(process.resourcesPath, 'app.asar');
   return fs.existsSync(appPath) || fs.existsSync(asarPath);
@@ -33,9 +39,23 @@ function getN8nBinaryPath() {
 
   const fullPath = process.platform === 'win32' ? `${basePath}.cmd` : basePath;
 
-  console.log(`[n8n] Binary path: ${fullPath}`);
-  console.log(`[n8n] Path exists: ${fs.existsSync(fullPath)}`);
-  console.log(`[n8n] isPackaged: ${isPackaged()}, isDev: ${isDev}`);
+  logger.info(`[n8n] Binary path: ${fullPath}`);
+  logger.info(`[n8n] Path exists: ${fs.existsSync(fullPath)}`);
+  logger.info(`[n8n] isPackaged: ${isPackaged()}, isDev: ${isDev}`);
+  logger.info(`[n8n] resourcesPath: ${process.resourcesPath}`);
+
+  // List contents of expected directory for debugging
+  const binDir = path.dirname(fullPath);
+  if (fs.existsSync(binDir)) {
+    try {
+      const files = fs.readdirSync(binDir);
+      logger.debug(`[n8n] Contents of ${binDir}:`, files.slice(0, 20));
+    } catch (e) {
+      logger.debug(`[n8n] Could not list directory: ${e.message}`);
+    }
+  } else {
+    logger.warn(`[n8n] Binary directory does not exist: ${binDir}`);
+  }
 
   return fullPath;
 }
@@ -52,17 +72,36 @@ async function startN8n() {
       N8N_VERSION_NOTIFICATIONS_ENABLED: 'false'
     };
 
-    console.log(`Starting n8n from: ${n8nPath}`);
+    logger.info(`[n8n] Starting n8n from: ${n8nPath}`);
+    logger.info(`[n8n] Args: ${args.join(' ')}`);
+    logger.info(`[n8n] Port: ${N8N_PORT}`);
+
+    // First verify the binary exists
+    if (!fs.existsSync(n8nPath)) {
+      const error = new Error(`n8n binary not found at: ${n8nPath}`);
+      logger.error(`[n8n] ${error.message}`);
+
+      // Try to provide more context
+      const appDir = path.join(process.resourcesPath, 'app');
+      if (fs.existsSync(appDir)) {
+        logger.info(`[n8n] App directory exists: ${appDir}`);
+        try {
+          const appContents = fs.readdirSync(appDir);
+          logger.info(`[n8n] App directory contents: ${appContents.join(', ')}`);
+        } catch (e) {
+          logger.error(`[n8n] Could not list app directory: ${e.message}`);
+        }
+      } else {
+        logger.error(`[n8n] App directory does not exist: ${appDir}`);
+      }
+
+      reject(error);
+      return;
+    }
 
     if (isDev) {
       // Development: Simple spawn for easier debugging
-      // First verify the binary exists
-      if (!fs.existsSync(n8nPath)) {
-        const error = new Error(`n8n binary not found at: ${n8nPath}`);
-        console.error(error.message);
-        reject(error);
-        return;
-      }
+      logger.info('[n8n] Starting in development mode');
 
       n8nMonitor = spawn(n8nPath, args, {
         env,
@@ -71,32 +110,26 @@ async function startN8n() {
       });
 
       n8nMonitor.on('error', (err) => {
-        console.error('[n8n] Failed to start:', err.message);
-        console.error('[n8n] Error details:', err);
+        logger.error('[n8n] Failed to start:', err.message);
+        logger.error('[n8n] Error details:', err);
         currentStatus = 'stopped';
         reject(err);
       });
 
       n8nMonitor.on('spawn', () => {
-        console.log('[n8n] Process spawned successfully in dev mode');
+        logger.info('[n8n] Process spawned successfully in dev mode');
         currentStatus = 'running';
         resolve(n8nMonitor);
       });
 
       n8nMonitor.on('exit', (code, signal) => {
-        console.log(`[n8n] Dev process exited with code ${code}, signal ${signal}`);
+        logger.info(`[n8n] Dev process exited with code ${code}, signal ${signal}`);
         currentStatus = 'stopped';
       });
 
     } else {
       // Production: Use respawn for auto-restart
-      // But first verify the binary exists
-      if (!fs.existsSync(n8nPath)) {
-        const error = new Error(`n8n binary not found at: ${n8nPath}`);
-        console.error(error.message);
-        reject(error);
-        return;
-      }
+      logger.info('[n8n] Starting in production mode with respawn');
 
       n8nMonitor = respawn([n8nPath, ...args], {
         env,
@@ -108,31 +141,37 @@ async function startN8n() {
 
       // Capture stdout
       n8nMonitor.on('stdout', (data) => {
-        console.log(`[n8n stdout] ${data.toString().trim()}`);
+        const output = data.toString().trim();
+        if (output) {
+          logger.info(`[n8n stdout] ${output}`);
+        }
       });
 
       // Capture stderr
       n8nMonitor.on('stderr', (data) => {
-        console.error(`[n8n stderr] ${data.toString().trim()}`);
+        const output = data.toString().trim();
+        if (output) {
+          logger.error(`[n8n stderr] ${output}`);
+        }
       });
 
       n8nMonitor.on('start', () => {
-        console.log('[n8n] Process started');
+        logger.info('[n8n] Process started via respawn');
         currentStatus = 'running';
         resolve(n8nMonitor);
       });
 
       n8nMonitor.on('crash', () => {
-        console.error('[n8n] Process crashed - check stderr output above for details');
+        logger.error('[n8n] Process crashed - check stderr output above for details');
         currentStatus = 'stopped';
       });
 
       n8nMonitor.on('exit', (code, signal) => {
-        console.log(`[n8n] Process exited with code ${code}, signal ${signal}`);
+        logger.info(`[n8n] Process exited with code ${code}, signal ${signal}`);
       });
 
       n8nMonitor.on('warn', (err) => {
-        console.warn(`[n8n] Warning: ${err.message}`);
+        logger.warn(`[n8n] Warning: ${err.message}`);
       });
 
       n8nMonitor.start();
@@ -142,6 +181,7 @@ async function startN8n() {
 
 async function stopN8n() {
   currentStatus = 'stopping';
+  logger.info('[n8n] Stopping n8n...');
 
   return new Promise(async (resolve) => {
     try {
@@ -149,12 +189,14 @@ async function stopN8n() {
         if (isDev) {
           // Kill the process directly
           if (n8nMonitor.kill) {
+            logger.info('[n8n] Killing dev process');
             n8nMonitor.kill('SIGTERM');
           }
         } else {
           // Stop respawn monitor
+          logger.info('[n8n] Stopping respawn monitor');
           n8nMonitor.stop(() => {
-            console.log('n8n respawn monitor stopped');
+            logger.info('[n8n] Respawn monitor stopped');
           });
         }
       }
@@ -164,9 +206,10 @@ async function stopN8n() {
 
       currentStatus = 'stopped';
       n8nMonitor = null;
+      logger.info('[n8n] n8n stopped successfully');
       resolve();
     } catch (error) {
-      console.error('Error stopping n8n:', error);
+      logger.error('[n8n] Error stopping n8n:', error.message);
       currentStatus = 'stopped';
       resolve();
     }
@@ -175,17 +218,20 @@ async function stopN8n() {
 
 async function killProcessOnPort(port) {
   try {
+    logger.info(`[n8n] Looking for processes on port ${port}`);
     const processes = await findProcess('port', port);
     for (const proc of processes) {
-      console.log(`Killing process ${proc.pid} on port ${port}`);
+      logger.info(`[n8n] Killing process ${proc.pid} (${proc.name}) on port ${port}`);
       process.kill(proc.pid, 'SIGTERM');
     }
   } catch (error) {
     // Process might already be dead
+    logger.debug(`[n8n] killProcessOnPort error (may be normal): ${error.message}`);
   }
 }
 
 async function restartN8n() {
+  logger.info('[n8n] Restarting n8n...');
   await stopN8n();
   return startN8n();
 }
