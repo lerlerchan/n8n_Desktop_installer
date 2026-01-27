@@ -11,8 +11,7 @@
     "build:win": "electron-builder build --win --x64 --publish never",
     "build:mac": "electron-builder build --mac --publish never",
     "build:mac:unsigned": "electron-builder build --mac -c.mac.identity=null --publish never",
-    "build:runtime": "node scripts/build-runtime.js",
-    "postinstall": "electron-builder install-app-deps"
+    "rebuild": "electron-builder install-app-deps"
   },
   "build": {
     "appId": "io.n8n.desktop",
@@ -28,8 +27,6 @@
       "renderer/**/*",
       "assets/**/*",
       "node_modules/**/*",
-      "!node_modules/n8n/**/*",
-      "!node_modules/sqlite3/**/*",
       "!node_modules/.cache/**/*"
     ],
     "win": {
@@ -88,14 +85,10 @@
     "cross-env": "^7.0.3",
     "dotenv": "^16.3.1",
     "find-process": "^1.4.7",
+    "n8n": "1.70.0",
     "node-fetch": "^2.7.0",
     "respawn": "^2.6.0",
     "tcp-port-used": "^1.0.2"
-  },
-  "optionalDependencies": {},
-  "n8nRuntimeDependencies": {
-    "_comment": "These are installed in the separate runtime package, not bundled with Electron",
-    "n8n": "^1.70.0"
   },
   "devDependencies": {
     "electron": "^28.0.0",

@@ -147,63 +147,21 @@ async function main() {
   const config = getConfig();
   logger.info('Config:', config);
 
-  // If packaged and runtime not present, download runtime on first run
-  try {
-    const isPackaged = app.isPackaged === true;
-    logger.info(`[runtime] Checking runtime, isPackaged: ${isPackaged}`);
+  // Verify n8n binary exists (bundled with installer)
+  const n8nBinPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'app', 'node_modules', '.bin', process.platform === 'win32' ? 'n8n.cmd' : 'n8n')
+    : path.join(__dirname, '..', 'node_modules', '.bin', process.platform === 'win32' ? 'n8n.cmd' : 'n8n');
 
-    if (isPackaged) {
-      const { ensureRuntime } = require('./utils/downloadRuntime');
+  logger.info(`[n8n] Expected binary path: ${n8nBinPath}`);
+  logger.info(`[n8n] Binary exists: ${fs.existsSync(n8nBinPath)}`);
 
-      // Target where packaged app expects node_modules to live
-      const targetDir = path.join(process.resourcesPath, 'app');
-      const n8nBin = path.join(targetDir, 'node_modules', '.bin', process.platform === 'win32' ? 'n8n.cmd' : 'n8n');
-
-      logger.info(`[runtime] Target directory: ${targetDir}`);
-      logger.info(`[runtime] Expected n8n binary: ${n8nBin}`);
-      logger.info(`[runtime] Binary exists: ${fs.existsSync(n8nBin)}`);
-
-      if (!fs.existsSync(n8nBin)) {
-        logger.info('[runtime] n8n binary not found inside packaged app; attempting runtime download');
-
-        // Show notification that download is starting
-        showErrorNotification(
-          'Downloading n8n Runtime',
-          'Please wait while the n8n runtime is being downloaded...'
-        );
-
-        // Runtime URL can be provided via env var RUNTIME_URL; default to release asset path
-        const runtimeUrl = process.env.RUNTIME_URL || `https://github.com/lerlerchan/n8n_Desktop_installer/releases/latest/download/n8n-runtime-win-x64.zip`;
-
-        logger.info(`[runtime] Download URL: ${runtimeUrl}`);
-
-        try {
-          await ensureRuntime({ downloadUrl: runtimeUrl, targetDir });
-          logger.info('[runtime] Runtime downloaded and extracted successfully');
-
-          // Verify the binary now exists
-          if (fs.existsSync(n8nBin)) {
-            logger.info('[runtime] Verified: n8n binary now exists');
-          } else {
-            logger.error('[runtime] ERROR: Binary still not found after extraction');
-          }
-        } catch (err) {
-          logger.error('[runtime] Failed to download or extract runtime:', err.message);
-          logger.error('[runtime] Stack trace:', err.stack);
-
-          await showErrorDialog(
-            'Runtime Download Failed',
-            'Failed to download the n8n runtime package.',
-            err.message
-          );
-        }
-      } else {
-        logger.info('[runtime] n8n binary already present; skipping runtime download');
-      }
-    }
-  } catch (err) {
-    logger.error('[runtime] Error checking/installing runtime:', err.message);
-    logger.error('[runtime] Stack trace:', err.stack);
+  if (!fs.existsSync(n8nBinPath)) {
+    logger.error('[n8n] CRITICAL: n8n binary not found!');
+    await showErrorDialog(
+      'n8n Not Found',
+      'The n8n binary is missing from the installation.',
+      `Expected at: ${n8nBinPath}\n\nPlease reinstall the application.`
+    );
   }
 
   // Create system tray
