@@ -11,18 +11,17 @@ Created to help students, educators, and beginners learn n8n automation without 
 ## Features
 
 - **One-click installation** - No Docker, no command line required
+- **Bundled n8n** - n8n is included in the installer, no separate download needed
 - **System tray interface** - Start/Stop/Restart n8n from the tray icon
 - **Auto-start** - n8n starts automatically when the app launches
 - **Browser integration** - Automatically opens your browser to n8n
 - **Persistent data** - Your workflows and credentials are stored locally
-- **Auto-download runtime** - The app downloads n8n on first run if needed
 
 ## Requirements
 
 - Windows 10/11 (64-bit) or macOS 10.15+
 - 4GB RAM minimum (8GB recommended)
 - 2GB free disk space
-- Internet connection (for first-run runtime download)
 
 ## Installation
 
@@ -31,8 +30,7 @@ Created to help students, educators, and beginners learn n8n automation without 
 1. Download the latest installer from the [Releases](https://github.com/lerlerchan/n8n_Desktop_installer/releases) page
 2. Run the installer (`.exe` for Windows, `.dmg` for macOS)
 3. Follow the installation wizard
-4. n8n Desktop will start automatically
-5. On first run, the app will download the n8n runtime (~300MB)
+4. n8n Desktop will start automatically and open your browser
 
 ### For Developers (From Source)
 
@@ -59,34 +57,23 @@ npm run build:mac
 
 ## Architecture
 
-This project uses a **two-part architecture** to avoid Node.js version conflicts:
+The app bundles n8n directly within the Electron application:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  1. Electron Shell (lightweight installer)                   │
+│  Electron Desktop App                                        │
 │     - System tray UI                                         │
-│     - Process management                                     │
-│     - Runtime downloader                                     │
-│     - ~50MB installed size                                   │
-└─────────────────────────────────────────────────────────────┘
-                              +
-┌─────────────────────────────────────────────────────────────┐
-│  2. n8n Runtime (downloaded on first run)                    │
-│     - Pre-built n8n with all dependencies                   │
-│     - Built with Node.js 20.x                               │
-│     - ~300MB download                                        │
+│     - Process management (respawn for auto-restart)          │
+│     - Bundled n8n in node_modules/n8n/                       │
+│     - Health check monitoring                                │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Why this architecture?**
-- n8n has native dependencies (like sqlite3) that must be compiled for a specific Node.js version
-- Electron uses its own embedded Node.js which differs from system Node.js
-- Building n8n inside Electron causes version conflicts
-- The runtime is built separately with plain Node.js 20.x, then downloaded at runtime
+n8n is included as a production dependency and packaged directly into the installer. The build uses `npmRebuild: false` to preserve pre-built native binaries.
 
 ## Building
 
-### Build the Electron Installer
+### Build the Installer
 
 ```bash
 # Install dependencies
@@ -98,56 +85,16 @@ npm run build:win
 # Output: dist/n8n Desktop Setup*.exe
 ```
 
-### Build the n8n Runtime
-
-The runtime is built separately and hosted on GitHub Releases.
-
-**Option 1: Use GitHub Actions (Recommended)**
-
-1. Go to Actions tab in GitHub
-2. Run "Build n8n Runtime" workflow
-3. Download the `n8n-runtime-win-x64.zip` artifact
-4. Upload to GitHub Releases
-
-**Option 2: Build Locally**
-
-```bash
-# Build runtime zip
-npm run build:runtime
-
-# Or with specific version
-npm run build:runtime -- --version 1.70.0
-
-# Output: n8n-runtime-win-x64.zip
-```
-
-### Runtime ZIP Structure
-
-After extracting, the runtime should have this structure:
-```
-node_modules/
-├── .bin/
-│   ├── n8n          # Unix executable
-│   └── n8n.cmd      # Windows executable
-├── n8n/
-│   └── ...
-└── (other dependencies)
-package.json
-package-lock.json
-```
+The build bundles n8n and all its dependencies into the installer. The `npmRebuild: false` setting ensures pre-built native modules are preserved as-is.
 
 ## CI/CD Workflows
 
-### `.github/workflows/build-windows.yml`
-- Triggers on push to main
-- Builds the lightweight Electron installer
-- Uploads installer as artifact
-
-### `.github/workflows/build-runtime.yml`
-- Triggers on push to main (when package.json changes) or manually
-- Builds n8n runtime with Node.js 20.x
-- Creates GitHub Release with the runtime zip
-- Can specify n8n version via workflow input
+### `.github/workflows/release.yml`
+- Triggers on push to main or manually
+- Builds n8n runtime on Windows with Node.js 20.x
+- Builds the Electron installer
+- Creates a GitHub Release with the installer and runtime zip
+- Supports specifying a custom n8n version via workflow input
 
 ## Usage
 
@@ -184,15 +131,6 @@ This includes:
 
 ## Configuration
 
-### Custom Runtime URL
-
-By default, the app downloads the runtime from GitHub Releases. You can override this:
-
-```bash
-# Set custom runtime URL (environment variable)
-set RUNTIME_URL=https://your-server.com/n8n-runtime-win-x64.zip
-```
-
 ### Custom Port
 
 Edit `~/.n8n/n8n-desktop.env` and set:
@@ -204,24 +142,35 @@ N8N_PORT=5679
 
 ### n8n won't start
 
-1. Check if port 5678 is already in use
-2. Check the logs in `~/.n8n/n8n-desktop-logs/`
-3. Try restarting the application
-4. Ensure the runtime was downloaded successfully
+1. Check if port 5678 is already in use (use `netstat -ano | findstr 5678` on Windows)
+2. Check the application logs in `~/.n8n/n8n-desktop-logs/`
+3. Try restarting the application from the system tray
+4. Verify the n8n binary exists inside the installation directory at `resources/app/node_modules/n8n/bin/`
 
-### Runtime download fails
+### n8n binary not found
 
-1. Check your internet connection
-2. Try downloading the runtime manually from Releases
-3. Extract to `%LOCALAPPDATA%\Programs\n8n Desktop\resources\app\`
+If you see "n8n binary not found" on startup:
+1. The installation may be corrupt - try reinstalling the application
+2. Check that antivirus software hasn't quarantined files in the installation directory
+3. The n8n binary should be at: `<install-dir>/resources/app/node_modules/n8n/bin/n8n.cmd` (Windows)
 
 ### Port conflict
 
-If port 5678 is in use, change it by editing `~/.n8n/n8n-desktop.env`.
+If port 5678 is in use, change it by editing `~/.n8n/n8n-desktop.env`:
+```
+N8N_PORT=5679
+```
 
 ### Application crashes
 
-Check the application logs and ensure you have enough free memory. n8n requires at least 1GB of free RAM.
+1. Check the application logs at `~/.n8n/n8n-desktop-logs/`
+2. Ensure you have at least 1GB of free RAM
+3. On Windows, try running as administrator if permission errors occur
+
+### Build issues (developers)
+
+- **Native module rebuild errors**: The build uses `npmRebuild: false` to avoid rebuilding native modules. If you encounter issues with native dependencies, ensure `npm install` completed successfully before building.
+- **Missing .bin symlinks**: In the packaged app, `.bin` symlinks are not created by electron-builder. The app uses direct paths to `node_modules/n8n/bin/` instead.
 
 ## Project Structure
 
@@ -229,25 +178,21 @@ Check the application logs and ensure you have enough free memory. n8n requires 
 n8n_Desktop_installer/
 ├── .github/
 │   └── workflows/
-│       ├── build-windows.yml    # Electron installer CI
-│       └── build-runtime.yml    # n8n runtime CI
+│       └── release.yml          # Build and release CI
 ├── main/
 │   ├── index.js                 # Main Electron process
 │   ├── tray.js                  # System tray implementation
 │   ├── n8nProcess.js            # n8n process management
 │   ├── envConfig.js             # Environment configuration
-│   ├── utils.js                 # Utility functions
-│   └── utils/
-│       └── downloadRuntime.js   # Runtime downloader
+│   ├── logger.js                # Application logging
+│   └── utils.js                 # Utility functions
 ├── preload/
 │   └── preload.js               # Preload script for IPC
 ├── renderer/
 │   └── index.html               # Optional UI
-├── scripts/
-│   └── build-runtime.js         # Local runtime build script
 ├── assets/                      # Icons and images
 ├── build/                       # Build configuration
-└── package.json                 # Dependencies and scripts
+└── package.json                 # Dependencies and build config
 ```
 
 ## Scripts
@@ -258,7 +203,7 @@ n8n_Desktop_installer/
 | `npm run dev` | Run in development mode |
 | `npm run build:win` | Build Windows installer (NSIS) |
 | `npm run build:mac` | Build macOS installer (DMG) |
-| `npm run build:runtime` | Build n8n runtime zip locally |
+| `npm run rebuild` | Rebuild native Electron dependencies |
 
 ## License
 
