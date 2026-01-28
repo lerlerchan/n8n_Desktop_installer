@@ -26,14 +26,14 @@ function isPackaged() {
 }
 
 function getN8nBinaryPath() {
-  // n8n CLI is in node_modules/.bin/n8n
+  // n8n CLI binary location
   let basePath;
 
   if (isPackaged()) {
-    // Packaged app: look in resources/app/node_modules
-    basePath = path.join(process.resourcesPath, 'app', 'node_modules', '.bin', 'n8n');
+    // Packaged app: use direct path to n8n/bin/n8n (no .bin symlinks in packaged app)
+    basePath = path.join(process.resourcesPath, 'app', 'node_modules', 'n8n', 'bin', 'n8n');
   } else {
-    // Running from source (dev or npm start): look in project's node_modules
+    // Running from source (dev or npm start): use .bin symlinks
     basePath = path.join(__dirname, '..', 'node_modules', '.bin', 'n8n');
   }
 

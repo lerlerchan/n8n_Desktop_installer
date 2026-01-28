@@ -148,8 +148,9 @@ async function main() {
   logger.info('Config:', config);
 
   // Verify n8n binary exists (bundled with installer)
+  // In packaged app, use direct path to n8n/bin (no .bin symlinks)
   const n8nBinPath = app.isPackaged
-    ? path.join(process.resourcesPath, 'app', 'node_modules', '.bin', process.platform === 'win32' ? 'n8n.cmd' : 'n8n')
+    ? path.join(process.resourcesPath, 'app', 'node_modules', 'n8n', 'bin', process.platform === 'win32' ? 'n8n.cmd' : 'n8n')
     : path.join(__dirname, '..', 'node_modules', '.bin', process.platform === 'win32' ? 'n8n.cmd' : 'n8n');
 
   logger.info(`[n8n] Expected binary path: ${n8nBinPath}`);

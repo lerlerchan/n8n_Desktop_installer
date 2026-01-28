@@ -29,6 +29,7 @@
       "node_modules/**/*",
       "!node_modules/.cache/**/*"
     ],
+    "npmRebuild": false,
     "win": {
       "target": [
         {
