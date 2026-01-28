@@ -209,13 +209,9 @@ n8n_Desktop_installer/
 
 ## License
 
-### n8n Desktop Installer (This Project)
+This project is licensed under the **[Sustainable Use License](https://github.com/n8n-io/n8n/blob/master/LICENSE.md)** - the same license used by n8n.
 
-The n8n Desktop Installer wrapper code is licensed under the **MIT License** - see [LICENSE](LICENSE) file for details.
-
-### n8n (Bundled Software)
-
-**n8n** is licensed under the [Sustainable Use License](https://github.com/n8n-io/n8n/blob/master/LICENSE.md) by n8n GmbH.
+See [LICENSE](LICENSE) file for full details.
 
 **Permitted Uses:**
 - Non-commercial and personal use
@@ -224,10 +220,8 @@ The n8n Desktop Installer wrapper code is licensed under the **MIT License** - s
 - Free distribution for non-commercial purposes
 
 **Restrictions:**
-- Commercial redistribution is prohibited without a separate license from n8n GmbH
+- Commercial redistribution is prohibited
 - Enterprise features (files with ".ee." in the name) require an n8n Enterprise License
-
-By using this installer, you agree to comply with n8n's Sustainable Use License.
 
 ### Disclaimer
 

@@ -4,7 +4,7 @@
   "description": "n8n Desktop Application - Run n8n locally with a system tray interface",
   "main": "main/index.js",
   "author": "n8n Desktop",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "scripts": {
     "start": "electron .",
     "dev": "cross-env ELECTRON_DEV_MODE=true electron .",
