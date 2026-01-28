@@ -19,6 +19,8 @@ let tray = null;
 let isQuitting = false;
 
 const N8N_PORT = process.env.N8N_PORT || 5678;
+// Use 127.0.0.1 for health checks (avoids IPv6 ::1 mismatch with n8n binding to 0.0.0.0)
+const N8N_HEALTH_URL = `http://127.0.0.1:${N8N_PORT}`;
 const N8N_URL = `http://localhost:${N8N_PORT}`;
 
 // Show error notification to user
@@ -63,11 +65,11 @@ async function handleStart() {
     await startN8n();
     logger.info('n8n process started, waiting for health check...');
 
-    await waitForN8n(N8N_URL);
+    await waitForN8n(N8N_HEALTH_URL);
     updateTrayStatus('running');
     logger.info('n8n started successfully and is healthy');
 
-    // Auto-open browser
+    // Auto-open browser (use localhost for user-facing URL)
     logger.info(`Opening browser to ${N8N_URL}`);
     shell.openExternal(N8N_URL);
   } catch (error) {

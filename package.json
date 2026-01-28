@@ -89,6 +89,7 @@
     "n8n": "1.70.0",
     "node-fetch": "^2.7.0",
     "respawn": "^2.6.0",
+    "sqlite3": "^5.1.7",
     "tcp-port-used": "^1.0.2"
   },
   "devDependencies": {
