@@ -4,6 +4,8 @@
 
 n8n Desktop Installer makes it easy for non-technical users to install and run n8n automation workflows on their Windows computer. No Docker, no terminal commands, no configuration needed - just click install and start automating!
 
+![n8n Setup Page](assets/screenshot-setup.png)
+
 ## 🎯 Purpose
 
 Created to help students, educators, and beginners learn n8n automation without the complexity of traditional installation methods. Perfect for workshops, training sessions, and classroom environments.
@@ -212,6 +214,24 @@ MIT License - See LICENSE file for details
 **Made with ❤️ for educators and students**
 
 *No more "Docker not found" errors in your workshops!*
+
+## Changelog
+
+### v1.0.2 (Latest)
+- Added sqlite3 as explicit dependency for native module support
+- Fixed health check IPv4/IPv6 mismatch issue (now uses 127.0.0.1 explicitly)
+
+### v1.0.1
+- Fixed: n8n module not included in packaged app
+- Fixed: Binary path issue in production builds (`.bin` symlinks not created by electron-builder)
+- Added: Disabled `npmRebuild` to prevent native module conflicts
+
+### v1.0.0
+- Initial release
+- One-click Windows installer with bundled n8n
+- System tray interface for start/stop/restart
+- Auto-start functionality
+- Browser integration
 
 ## Credits and 🙏 Acknowledgments
 
